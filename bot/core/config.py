@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "qdrant"
     QDRANT_PORT: int = 6333
 
+    # AI
+    OPENAI_API_KEY: str
+    OPENAI_MODEL_NAME: str = "gpt-4-turbo-preview"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
