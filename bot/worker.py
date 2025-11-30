@@ -3,6 +3,7 @@ from arq import create_pool
 from arq.connections import RedisSettings
 from bot.core.config import settings
 from bot.core.logger import setup_logging, logger
+from bot.ml_modules.vision import process_ocr
 
 setup_logging()
 
@@ -19,7 +20,7 @@ async def test_task(ctx, word: str):
 
 # Worker Settings
 class WorkerSettings:
-    functions = [test_task]
+    functions = [test_task, process_ocr]
     redis_settings = RedisSettings(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT
