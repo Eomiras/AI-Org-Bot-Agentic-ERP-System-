@@ -14,3 +14,9 @@ python-dotenv==1.0.0
 structlog==24.1.0
 # Vector DB client
 qdrant-client==1.7.0
+langchain
+langchain-community
+langchain-openai
+langchain-qdrant
+langgraph
+sentence-transformers
