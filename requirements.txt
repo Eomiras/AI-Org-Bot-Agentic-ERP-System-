@@ -1,4 +1,4 @@
-py-cord==2.4.1
+py-cord==2.6.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 sqlalchemy[asyncio]==2.0.25
