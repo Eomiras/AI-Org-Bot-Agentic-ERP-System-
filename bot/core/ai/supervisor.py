@@ -12,6 +12,7 @@ from bot.core.ai.state import AgentState
 from bot.core.knowledge.vector_db import get_retriever
 from bot.core.ai.tools.economy import get_user_balance, transfer_money
 from bot.core.ai.tools.sentinel import get_user_risk_profile, trigger_lockout
+from bot.core.ai.tools.karma import get_user_karma_status, get_karma_audit_log
 
 # --- Helper ---
 def create_agent(llm, tools, system_prompt: str):
@@ -127,17 +128,39 @@ async def shield_agent(state: AgentState) -> dict:
 
     return {"messages": [AIMessage(content=result["output"])]}
 
+async def archivist_agent(state: AgentState) -> dict:
+    """
+    Vault Archivist: Karma Core, Reputation and Protocol Logging.
+    """
+    llm = get_llm()
+    tools = [get_user_karma_status, get_karma_audit_log]
+
+    system_prompt_text = (
+        "Du bist der Vault Archivist, zuständig für die Integrität des 'Karma Core' Systems. "
+        "Dein Ton ist stets formell, neutral und faktenbasiert. "
+        "Du sprichst in klaren, protokollarischen Sätzen und verwendest Metaphern aus der Lore (Gewölbe, Systemintegrität, Tier-Level). "
+        "Deine Aufgabe ist es, den aktuellen Reputationsstatus, die Gründe für Karma-Veränderungen und die Konsequenzen des aktuellen Karma-Tiers zu kommunizieren. "
+        "Verweise auf die 'Multidimensionale Reputationsmatrix' und die 'Protokollkonformität' als Quelle deiner Daten. "
+        "Gib keine Gefühle oder Meinungen ab. Deine Antworten MÜSSEN den aktuellen Karma-Stand (Tier und Punkte) des Nutzers enthalten."
+    )
+
+    agent_executor = create_agent(llm, tools, system_prompt_text)
+
+    result = await agent_executor.ainvoke({"messages": state["messages"]})
+
+    return {"messages": [AIMessage(content=result["output"])]}
 
 # --- 2. Define the Supervisor ---
 
 # The options for the supervisor to choose from. WE MUST INCLUDE FINISH.
-options = ["economy_agent", "lore_agent", "chat_agent", "shield_agent", "FINISH"]
+options = ["economy_agent", "lore_agent", "chat_agent", "shield_agent", "archivist_agent", "FINISH"]
 
 # The system prompt
 system_prompt = (
-    "You are the supervisor. You manage the following workers: [economy_agent, lore_agent, chat_agent, shield_agent]. "
+    "You are the supervisor. You manage the following workers: [economy_agent, lore_agent, chat_agent, shield_agent, archivist_agent]. "
     "Given a user request, respond with the name of the worker to act next, or 'FINISH' if the user request is satisfied or requires no specific worker action. "
-    "Use 'shield_agent' for admin commands, compliance checks, or system integrity reports."
+    "Use 'shield_agent' for admin commands, compliance checks, or system integrity reports. "
+    "Use 'archivist_agent' for questions about Reputation, Karma, Tier Status, or user behavior history."
 )
 
 # Function definition for OpenAI function calling (to force structured output)
@@ -196,6 +219,7 @@ workflow.add_node("economy_agent", economy_agent)
 workflow.add_node("lore_agent", lore_agent)
 workflow.add_node("chat_agent", chat_agent)
 workflow.add_node("shield_agent", shield_agent)
+workflow.add_node("archivist_agent", archivist_agent)
 
 # Add edges
 # From supervisor, we branch to the worker or END
@@ -207,6 +231,7 @@ workflow.add_conditional_edges(
         "lore_agent": "lore_agent",
         "chat_agent": "chat_agent",
         "shield_agent": "shield_agent",
+        "archivist_agent": "archivist_agent",
         "FINISH": END
     }
 )
@@ -216,6 +241,7 @@ workflow.add_edge("economy_agent", "supervisor")
 workflow.add_edge("lore_agent", "supervisor")
 workflow.add_edge("chat_agent", "supervisor")
 workflow.add_edge("shield_agent", "supervisor")
+workflow.add_edge("archivist_agent", "supervisor")
 
 # Set entry point
 workflow.set_entry_point("supervisor")
