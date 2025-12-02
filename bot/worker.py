@@ -1,5 +1,5 @@
 import asyncio
-from arq import create_pool
+from arq import create_pool, cron
 from arq.connections import RedisSettings
 from bot.core.config import settings
 from bot.core.logger import setup_logging, logger
@@ -7,6 +7,7 @@ from bot.ml_modules.vision import process_ocr
 from bot.ml_modules.audio import generate_tts
 from bot.ml_modules.ingestion import ingest_task
 from bot.ml_modules.identity import generate_id_card_task
+from bot.ml_modules.karma_logic import daily_decay_task
 
 setup_logging()
 
@@ -23,7 +24,10 @@ async def test_task(ctx, word: str):
 
 # Worker Settings
 class WorkerSettings:
-    functions = [test_task, process_ocr, generate_tts, ingest_task, generate_id_card_task]
+    functions = [test_task, process_ocr, generate_tts, ingest_task, generate_id_card_task, daily_decay_task]
+    cron_jobs = [
+        cron(daily_decay_task, hour=3, minute=0)
+    ]
     redis_settings = RedisSettings(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT

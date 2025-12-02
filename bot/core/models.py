@@ -1,6 +1,7 @@
-from sqlalchemy import BigInteger, String, Boolean, DateTime, func, ForeignKey
+from sqlalchemy import BigInteger, String, Boolean, DateTime, func, ForeignKey, Integer, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from bot.core.database import Base
+import uuid
 
 class User(Base):
     __tablename__ = "users"
@@ -117,3 +118,24 @@ class Transaction(Base):
     amount: Mapped[int] = mapped_column(BigInteger)
     timestamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     reason: Mapped[str] = mapped_column(String, nullable=True)
+
+class KarmaCore(Base):
+    __tablename__ = "karma_core"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.discord_id"), primary_key=True)
+    total_karma: Mapped[int] = mapped_column(Integer, default=0) # Range -500 to 2000+
+    karma_tier: Mapped[str] = mapped_column(String, default="Novize") # Abtrünniger, Novize, Wächter, Veteran, Ältester
+    is_afk: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_activity: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    decay_override_until: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_decay_run: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+class KarmaLog(Base):
+    __tablename__ = "karma_log"
+
+    log_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.discord_id"))
+    timestamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    source_id: Mapped[str] = mapped_column(String) # ID of voting user or 'SYSTEM'
+    points_change: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String) # 'UPVOTE', 'DOWNVOTE', 'DECAY', 'MOD_ACTION'
